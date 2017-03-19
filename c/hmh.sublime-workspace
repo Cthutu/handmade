@@ -1,0 +1,416 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"cma",
+				"cmake_minimum_required"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "code/win32_handmade.cc",
+			"settings":
+			{
+				"buffer_size": 214,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/C/Dev/hmh/miso/code/win32_handmade.m",
+			"settings":
+			{
+				"buffer_size": 154,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/C/Dev/hmh/miso/code/windows.m",
+			"settings":
+			{
+				"buffer_size": 107,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/C/Dev/hmh/miso/code/build.bat",
+			"settings":
+			{
+				"buffer_size": 81,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"plain",
+				"Set Syntax: Plain Text"
+			],
+			[
+				"package control",
+				"Package Control: Remove Package"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"pack",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 408.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '2915d1851351e5ee549c20394736b442' + '8bc59f460fa1548d1514676163dafc88'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/C/Dev/hmh",
+		"/C/Dev/hmh/c",
+		"/C/Dev/hmh/c/code",
+		"/C/Dev/hmh/c/misc",
+		"/C/Dev/hmh/miso",
+		"/C/Dev/hmh/miso/code"
+	],
+	"file_history":
+	[
+		"/C/Dev/hmh/c/code/build.bat",
+		"/C/Dev/hmh/c/misc/shell.bat",
+		"/C/Users/matt/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/startup.bat",
+		"/C/Users/matt/AppData/Roaming/Sublime Text 3/Packages/User/hmh.sublime-build",
+		"/C/Dev/hmh/c/build.bat",
+		"/C/Users/matt/Documents/SBTF RANKS.txt",
+		"/C/Users/matt/Documents/subnautica.txt",
+		"/C/Dev/miso/examples/hello.m",
+		"/C/Dev/miso/make/premake5.lua",
+		"/C/Bin/vcvarsall.bat",
+		"/C/Dev/Research/Odin/build.bat",
+		"/E/Games/steamapps/common/Alien Isolation/DATA/ENGINE_SETTINGS.XML",
+		"/C/Dev/miso/q.sublime-syntax",
+		"/C/Dev/banshee/make/premake5.lua",
+		"/C/Dev/hm/code/build.bat",
+		"/C/Users/matt/AppData/Local/Frontier Developments/Elite Dangerous/Options/Graphics/GraphicsConfigurationOverride.xml",
+		"/E/Games/EDLaunch/Products/FORC-FDEV-D-1001/GraphicsConfiguration.xml",
+		"/C/Dev/banshee/.gitignore",
+		"/C/Dev/banshee/make/build.lua",
+		"/C/Dev/banshee/update.bat",
+		"/C/Dev/banshee/clean.bat",
+		"/C/Users/matt/Documents/Marvel.txt",
+		"/C/Users/matt/Documents/Cool WOW names.txt",
+		"/C/Dev/qc/examples/milestones/milestone1.q",
+		"/C/Users/matt/Documents/Programming Projects.txt",
+		"/C/Dev/qc/qc-syntax.txt",
+		"/C/Dev/qc/make/build2015.bat",
+		"/C/Dev/mytimer/build/conanbuildinfo.cmake",
+		"/C/Dev/mytimer/conanfile.txt",
+		"/C/Dev/mytimer/CMakeLists.txt",
+		"/C/Dev/karbon/extern/xu/make/premake5.lua",
+		"/C/Users/matt/Documents/FTB Minecraft notes.txt",
+		"/C/Users/matt/Documents/IndustrialCraft.txt",
+		"/C/Dev/karbon/make/premake5.lua",
+		"/E/Games/System Shock - Enhanced Edition/controls.cfg",
+		"/C/Users/matt/Documents/agenda.txt",
+		"/C/Dev/mytimer/timer.cc",
+		"/C/Dev/Xu/make/premake5.lua",
+		"/C/Dev/oogl/make/premake5.lua",
+		"/C/Users/matt/Documents/Minecraft Notes.txt",
+		"/C/Dev/Titan/data/core.tt",
+		"/C/Games/FTB/direwolf20_17/minecraft/config/ComputerCraft.cfg",
+		"/C/Dev/Titan/.gitignore",
+		"/C/Dev/Titan/make/premake5.lua",
+		"/C/Dev/Titan/make/build.bat",
+		"/C/Dev/Forge/.gitignore",
+		"/C/Dev/Handmade/.gitignore",
+		"/C/Users/matt/.git-credentials",
+		"/C/Dev/Handmade/patch2.diff",
+		"/C/Dev/Handmade/patch1.diff",
+		"/C/Users/matt/Desktop/Futura/Futura.asm",
+		"/C/Users/matt/Desktop/Wizball (1987)(Ocean Software).pok"
+	],
+	"find":
+	{
+		"height": 34.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"GuiColour",
+			",",
+			"Matrix",
+			"CONAN_COMPILER"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "code/win32_handmade.cc",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 214,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								214,
+								214
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		},
+		{
+			"selected": 2,
+			"sheets":
+			[
+				{
+					"buffer": 1,
+					"file": "/C/Dev/hmh/miso/code/win32_handmade.m",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 154,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								98,
+								98
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/C/Dev/hmh/miso/code/windows.m",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 107,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								107,
+								107
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/C/Dev/hmh/miso/code/build.bat",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 81,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								51,
+								51
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Batch File/Batch File.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			0.5,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 100.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/User/hmh.sublime-build",
+	"project": "hmh.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 219.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
