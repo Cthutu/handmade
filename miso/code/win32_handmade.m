@@ -4,24 +4,68 @@
 
 #import "Windows" as Win32
 
+var gRunning = true
+var gBitmapInfo: Win32.BITMAPINFO
+var gBitmapMemory: ^void
+var gBitmapHandle: Win32.HBITMAP
+var gBitmapDeviceContext: Win32.HDC
+
+Win32ResizeDIBSection: (width int, height int)
+{
+    if gBitmapHandle Win32.DeleteObject(gBitMapHandle)
+    if !gBitmapDeviceContext gBitmapDeviceContext = Win32.CreateCompatibleDC(0)
+
+    gBitmapInfo.bmiheader = {
+        biSize:         sizeof(gBitmapInfo.bmiHeader)
+        biWidth:        width
+        biHeight:       height
+        biPlanes:       1
+        biBitCount:     32
+        biCompression:  Win32.BI_RGB
+    }
+
+    gBitmapHandle = Win32.CreateDIBSection(
+        hdc:        gBitmapDeviceContext,
+        pbmi:       ^gBitmapInfo,
+        iUsage:     DIB_RGB_COLORS,
+        ppvBits:    ^gBitmapMemory,
+        hSection:   null,
+        dwOffset:   0)
+}
+
+Win32UpdateWindow: (dc Win32.HDC, x int, y int, width int, height int)
+{
+    Win32.StretchDIBits(
+        dc,
+        x, y, width, height,
+        x, y, width, height,
+        0, 0,
+        Win32.DIB_RGB_COLORS,
+        Win32.SRCCOPY)
+}
+
 main: ()
 {
     let windowClass: Win32.WNDCLASS = {
         style:          Win32.CS_OWNDC | Win32.CS_HREDRAW | Win32.CS_VREDRAW
-        lpfnWndProc:    (window HWND, message UINT, wParam WPARAM, lParam LPARAM) -> LRESULT
+        lpfnWndProc:    (window Win32.HWND, message Win32.UINT, wParam Win32.WPARAM, lParam Win32.LPARAM) -> LRESULT
                         {
-                            var result: LRESULT = 0
+                            var result: Win32.LRESULT = 0
 
                             select message
                             {
                                 on Win32.WM_SIZE
                                 {
-
+                                    var clientRect: Win32.RECT
+                                    Win32.GetClientRect(window, ^clientRect)
+                                    let width = (clientRect.right - clientRect.left) as int
+                                    let height = (clientRect.bottom - clientRect.top) as int
+                                    Win32ResizeDIBSection(width, height);
                                 }
 
-                                on Win32.WM_DESTROY
+                                on Win32.WM_CLOSE
                                 {
-
+                                    gRunning = false
                                 }
 
                                 on Win32.WM_ACTIVATEAPP
@@ -29,18 +73,22 @@ main: ()
 
                                 }
 
+                                on Win32.WM_DESTROY
+                                {
+                                    gRunning = false
+                                }
+
                                 on Win32.WM_PAINT
                                 {
                                     var paint: Win32.PAINTSTRUCT
                                     let deviceContext = Win32.BeginPaint(window, ^paint)
+
                                     let x = paint.rcPaint.left as int
                                     let y = paint.rcPaint.top as int
                                     let width = paint.rcPaint.right - x as int
                                     let height = paint.rcPaint.bottom - y as int
+                                    Win32UpdateWindow(x, y, width, height)
 
-                                    var operation = Win32.WHITENESS @static
-                                    Win32.PatBlt(dc, x, y, width, height, operation)
-                                    operation = Win32.BLACKNESS if operation == Win32.WHITENESS else Win32.WHITENESS
                                     Win32.EndPaint(window, ^paint)
                                 }
 
@@ -70,7 +118,8 @@ main: ()
         if (windowHandle)
         {
             var message: Win32.MSG
-            loop {
+            gRunning = true
+            while(gRunning) {
                 let messageResult = Win32.GetMessage(^message, 0, 0, 0)
                 if messageResult > 0
                 {

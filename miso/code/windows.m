@@ -11,6 +11,8 @@ export
     HCURSOR: HICON
     HICON: HANDLE
     HBRUSH: HANDLE
+    HBITMAP: HANDLE
+    HGDIOBJ: HANDLE
 
     -- Integers & pointers
     UINT: u32
@@ -87,6 +89,7 @@ export
         right           LONG
         bottom          LONG
     }
+    LPRECT: ^RECT
 
     PAINTSTRUCT: {
         hdc             HDC
@@ -96,8 +99,48 @@ export
         fIncUpdate      BOOL
         rgbReserved     [32]BYTE
     }
-
     LPPAINTSTRUCT: ^PAINTSTRUCT
+
+    DIBSECTION: {
+        dsBm            BITMAP
+        dsBmih          BITMAPINFOHEADER
+        dsBitfields     [3]DWORD
+        dshSection      HANDLE
+        dsOffset        DWORD
+    }
+    PDIBSECTION: ^DIBSECTION
+    
+    BITMAP: {
+        bmType          LONG
+        bmWidth         LONG
+        bmHeight        LONG
+        bmWidthBytes    LONG
+        bmPlanes        WORD
+        bmBitsPixel     WORD
+        bmBits          LPVOID
+    }
+    PBITMAP: ^BITMAP
+    
+    BITMAPINFO: {
+        bmiHeader       BITMAPINFOHEADER
+        bmiColors       [1]RGBQUAD
+    }
+    PBITMAPINFO: ^BITMAPINFO
+    
+    BITMAPINFOHEADER: {
+        biSize          DWORD
+        biWidth         LONG
+        biHeight        LONG
+        biPlanes        WORD
+        biBitCount      WORD
+        biCompression   DWORD
+        biSizeImage     DWORD
+        biXPelsPerMeter LONG
+        biYPelsPerMeter LONG
+        biClrUsed       DWORD
+        biClrImportant  DWORD
+    }
+    PBITMAPINFOHEADER: ^BITMAPINFOHEADER
 
     -- Unicode KERNEL32 functions
     foreign(kernel32) GetModuleHandleW: (lpModuleName LPCWSTR) -> HMODULE
@@ -116,6 +159,8 @@ export
     foreign(user32) DispatchMessage(lpMsg LPMSG) -> LRESULT
     foreign(user32) BeginPaint(hwnd HWND, lpPaint LPPAINTSTRUCT) -> HDC
     foreign(user32) EndPaint(hwnd HWND, lpPaint LPPAINTSTRUCT) -> BOOL
+    foreign(user32) PostQuitMessage(nExitCode s32)
+    foreign(user32) GetClientRect(hWnd HWND, lpRect LPRECT) -> BOOL
 
     -- Unicode version USER32 functions
     foreign(user32) MessageBoxW: (hWnd HWND, lpText LPCWSTR, lpCaption LPCWSTR, uType UINT) -> int
@@ -160,6 +205,27 @@ export
 
     -- GDI32 functions
     foreign(gdi32) PatBlt(hdc HDC, nXLeft int, nYLeft int, nWidth int, nHeight int, dwRop DWORD) -> BOOL
+    foreign(gdi32) CreateDIBSection(hdc HDC, 
+                                    pbmi ^BITMAPINFO, 
+                                    iUsage UINT, 
+                                    ppvBits ^^void, 
+                                    hSection HANDLE, 
+                                    dwOffset DWORD) -> HBITMAP
+    foreign(gdi32) StretchDIBits(hdc            HDC,
+                                 XDest          int,
+                                 YDest          int,
+                                 nDestWidth     int,
+                                 nDestHeight    int,
+                                 XSrc           int,
+                                 YSrc           int,
+                                 nSrcWidth      int,
+                                 nSrcHeight     int,
+                                 lpBits         ^void,
+                                 lpBitsInfo     ^BITMAPINFO,
+                                 iUsage         UINT,
+                                 dwRop          DWORD) -> int
+    foreign(gdi32) DeleteObject(hObject HGDIOBJ) -> BOOL
+    foreign(gdi32) CreateCompatibleDC(hdc HDC) -> HDC
 
     -- Constants
     MB_ABORTRETRYIGNORE:        0x00000002
@@ -290,9 +356,22 @@ export
     SIZE_MAXSHOW:               3
     SIZE_MAXHIDE:               4
 
+    SRCCOPY:                    0x00cc0020 as DWORD
+    SRCPAINT:                   0x00ee0086 as DWORD
+    SRCAND:                     0x008800c6 as DWORD
+    SRCINVERT:                  0x00660046 as DWORD
+    SRCERASE:                   0x00440328 as DWORD
+    NOTSRCCOPY:                 0x00330008 as DWORD
+    NOTSRCERASE:                0x001100a6 as DWORD
+    MERGECOPY:                  0x00c000ca as DWORD
+    MERGEPAINT:                 0x00bb0226 as DWORD
     PATCOPY:                    0x00f00021 as DWORD
+    PATPAINT:                   0x00fb0a09 as DWORD
     PATINVERT:                  0x005A0049 as DWORD
     DSTINVERT:                  0x00550009 as DWORD
     BLACKNESS:                  0x00000042 as DWORD
     WHITENESS:                  0x00ff0062 as DWORD
+
+    DIB_RGB_COLORS:             0
+    DIB_PAL_COLORS:             1
 }
