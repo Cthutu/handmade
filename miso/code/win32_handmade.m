@@ -5,41 +5,69 @@
 #import "Windows" as Win32
 
 var gRunning = true
+
 var gBitmapInfo: Win32.BITMAPINFO
 var gBitmapMemory: ^void
-var gBitmapHandle: Win32.HBITMAP
-var gBitmapDeviceContext: Win32.HDC
+var gBitmapWidth, gBitmapHeight: int
+kBytesPerPixel: 4
+
+RenderWeirdGradient: (blueOffset int, greenOffset int)
+{
+    let width = gBitmapWidth
+    let height = gBitmapHeight
+    let pitch = width * kBytesPerPixel
+
+    let row = gBitmapMemory as ^u8
+    loop y in (0, height)
+    {
+        unsafe
+        {
+            var pixel: ^u8 = row
+            loop x in (0, width)
+            {
+                let blue = (x + blueOffset) as u8
+                let green = (y + greenOffset) as u8
+
+                pixel^= (green as u32) << 8 | (blue as u32)
+                pixel += 1
+            }
+
+            row += pitch
+        }
+    }
+}
 
 Win32ResizeDIBSection: (width int, height int)
 {
-    if gBitmapHandle Win32.DeleteObject(gBitMapHandle)
-    if !gBitmapDeviceContext gBitmapDeviceContext = Win32.CreateCompatibleDC(0)
+    if gBitmapMemory Win32.VirtualFree(gBitmapMemory, 0, Win32.MEM_RELEASE)
+
+    gBitmapWidth = width;
+    gBitmapHeight = height;
 
     gBitmapInfo.bmiheader = {
         biSize:         sizeof(gBitmapInfo.bmiHeader)
         biWidth:        width
-        biHeight:       height
+        biHeight:       -height
         biPlanes:       1
         biBitCount:     32
         biCompression:  Win32.BI_RGB
     }
 
-    gBitmapHandle = Win32.CreateDIBSection(
-        hdc:        gBitmapDeviceContext,
-        pbmi:       ^gBitmapInfo,
-        iUsage:     DIB_RGB_COLORS,
-        ppvBits:    ^gBitmapMemory,
-        hSection:   null,
-        dwOffset:   0)
+    let bitmapMemorySize = (width * height) * kBytesPerPixel
+    gBitmapMemory = Win32.VirtualAlloc(null, bitmapMemorySize, Win32.MEM_COMMIT, Win32.PAGE_READWRITE)
 }
 
-Win32UpdateWindow: (dc Win32.HDC, x int, y int, width int, height int)
+Win32UpdateWindow: (dc Win32.HDC, clientRect ^RECT, x int, y int, width int, height int)
 {
+    let windowWidth = (clientRect.right - clientRect.left) as int
+    let windowHeight = (clientRect.bottom - clientRect.top) as int
+
     Win32.StretchDIBits(
         dc,
-        x, y, width, height,
-        x, y, width, height,
-        0, 0,
+        0, 0, windowWidth, windowHeight
+        x, y, gBitmapWidth, gBitmapHeight
+        gBitmapMemory,
+        ^gBitmapInfo,
         Win32.DIB_RGB_COLORS,
         Win32.SRCCOPY)
 }
@@ -104,7 +132,7 @@ main: ()
 
     if Win32.RegisterClass(^windowClass)
     {
-        let windowHandle = Win32.CreateWindowEx(
+        let window = Win32.CreateWindowEx(
             lpszClassName:      windowClassName.lpszClassName,
             lpszWindowName:     "Handmade Hero",
             dwStyle:            Win32.WS_OVERLAPPEDWINDOW | Win32.WS_VISIBLE,
@@ -115,21 +143,32 @@ main: ()
             hInstance:          windowClassName.hInstance
         )
 
-        if (windowHandle)
+        if (window)
         {
-            var message: Win32.MSG
+            var xOffset, yOffset: int
             gRunning = true
+            
             while(gRunning) {
-                let messageResult = Win32.GetMessage(^message, 0, 0, 0)
-                if messageResult > 0
+                var message: Win32.MSG
+                while(Win32.PeekMessage(^message, 0, 0, 0, Win32.PM_REMOVE))
                 {
+                    gRunning = false if (message.message == Win32.WM_QUIT)
                     Win32.TranslateMessage(^message)
                     Win32.DispatchMessage(^message)
                 }
-                else
-                {
-                    break;
-                }
+
+                RenderWeirdGradient(xOffset, yOffset)
+
+                let deviceContext = Win32.GetDC(window)
+                var clientRect: Win32.RECT
+                Win32.GetClientRect(window, ^clientRect)
+                let windowWidth = (clientRect.right - clientRect.left) as int
+                let windowHeight = (clientRect.bottom - clientRect.top) as int
+                Win32UpdateWindow(deviceContext, ^clientRect, 0, 0, windowWidth, windowHeight)
+                Win32.ReleaseDC(window, deviceContext)
+
+                xOffset += 1
+                yOffset += 2
             }
         }
     }
