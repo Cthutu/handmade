@@ -4,26 +4,36 @@
 
 #import "Windows" as Win32
 
-var gRunning = true
+Win32OffscreenBuffer: {
+    info            Win32.BITMAPINFO
+    memory          ^void
+    width           int
+    height          int
+    pitch           int
+    bytesPerPixel   int
+}
 
-var gBitmapInfo: Win32.BITMAPINFO
-var gBitmapMemory: ^void
-var gBitmapWidth, gBitmapHeight: int
-kBytesPerPixel: 4
+var 
+    gRunning = true,
+    gGlobalBackBuffer: Win32OffscreenBuffer
 
-RenderWeirdGradient: (blueOffset int, greenOffset int)
+
+Win32GetWindowDimension: (window HWND) -> (width int, height int)
 {
-    let width = gBitmapWidth
-    let height = gBitmapHeight
-    let pitch = width * kBytesPerPixel
+    var clientRect: RECT
+    Win32.GetClientRect(window, ^clientRect)
+    return (clientRect.right - clientRect.left, clientRect.bottom - clientRect.top)
+}
 
-    let row = gBitmapMemory as ^u8
-    loop y in (0, height)
+RenderWeirdGradient: (buffer Win32OffscreenBuffer, blueOffset int, greenOffset int)
+{
+    let row = buffer.memory as ^u8
+    loop y in (0, buffer.height)
     {
         unsafe
         {
             var pixel: ^u8 = row
-            loop x in (0, width)
+            loop x in (0, buffer.width)
             {
                 let blue = (x + blueOffset) as u8
                 let green = (y + greenOffset) as u8
@@ -32,50 +42,49 @@ RenderWeirdGradient: (blueOffset int, greenOffset int)
                 pixel += 1
             }
 
-            row += pitch
+            row += buffer.pitch
         }
     }
 }
 
-Win32ResizeDIBSection: (width int, height int)
+Win32ResizeDIBSection: (buffer ^Win32OffscreenBuffer mutable, width int, height int)
 {
-    if gBitmapMemory Win32.VirtualFree(gBitmapMemory, 0, Win32.MEM_RELEASE)
+    if buffer^.memory Win32.VirtualFree(gBitmapMemory, 0, Win32.MEM_RELEASE)
 
-    gBitmapWidth = width;
-    gBitmapHeight = height;
+    buffer^.width = width;
+    buffer^.height = height;
 
-    gBitmapInfo.bmiheader = {
-        biSize:         sizeof(gBitmapInfo.bmiHeader)
-        biWidth:        width
-        biHeight:       -height
+    buffer^.info.bmiheader = {
+        biSize:         sizeof(buffer^.info.bmiHeader)
+        biWidth:        buffer^.width
+        biHeight:       -buffer^.height
         biPlanes:       1
         biBitCount:     32
         biCompression:  Win32.BI_RGB
     }
 
-    let bitmapMemorySize = (width * height) * kBytesPerPixel
-    gBitmapMemory = Win32.VirtualAlloc(null, bitmapMemorySize, Win32.MEM_COMMIT, Win32.PAGE_READWRITE)
+    let bitmapMemorySize = (buffer^.width * buffer^.height) * buffer^.bytesPerPixel
+    buffer^.memory = Win32.VirtualAlloc(null, bitmapMemorySize, Win32.MEM_COMMIT, Win32.PAGE_READWRITE)
 }
 
-Win32UpdateWindow: (dc Win32.HDC, clientRect ^RECT, x int, y int, width int, height int)
+Win32UpdateWindow: (dc Win32.HDC, windowWidth int, windowHeight int, buffer Win32OffscreenBuffer, x int, y int, width int, height int)
 {
-    let windowWidth = (clientRect.right - clientRect.left) as int
-    let windowHeight = (clientRect.bottom - clientRect.top) as int
-
     Win32.StretchDIBits(
         dc,
         0, 0, windowWidth, windowHeight
-        x, y, gBitmapWidth, gBitmapHeight
-        gBitmapMemory,
-        ^gBitmapInfo,
+        x, y, buffer.width, buffer.height
+        buffer.memory,
+        ^buffer.info,
         Win32.DIB_RGB_COLORS,
         Win32.SRCCOPY)
 }
 
 main: ()
 {
+    Win32ResizeDIBSection(^gGlobalBackBuffer, 1280, 720)
+
     let windowClass: Win32.WNDCLASS = {
-        style:          Win32.CS_OWNDC | Win32.CS_HREDRAW | Win32.CS_VREDRAW
+        style:          Win32.CS_HREDRAW | Win32.CS_VREDRAW
         lpfnWndProc:    (window Win32.HWND, message Win32.UINT, wParam Win32.WPARAM, lParam Win32.LPARAM) -> LRESULT
                         {
                             var result: Win32.LRESULT = 0
@@ -84,11 +93,6 @@ main: ()
                             {
                                 on Win32.WM_SIZE
                                 {
-                                    var clientRect: Win32.RECT
-                                    Win32.GetClientRect(window, ^clientRect)
-                                    let width = (clientRect.right - clientRect.left) as int
-                                    let height = (clientRect.bottom - clientRect.top) as int
-                                    Win32ResizeDIBSection(width, height);
                                 }
 
                                 on Win32.WM_CLOSE
@@ -109,13 +113,15 @@ main: ()
                                 on Win32.WM_PAINT
                                 {
                                     var paint: Win32.PAINTSTRUCT
-                                    let deviceContext = Win32.BeginPaint(window, ^paint)
+                                    let dc = Win32.BeginPaint(window, ^paint)
 
                                     let x = paint.rcPaint.left as int
                                     let y = paint.rcPaint.top as int
                                     let width = paint.rcPaint.right - x as int
                                     let height = paint.rcPaint.bottom - y as int
-                                    Win32UpdateWindow(x, y, width, height)
+
+                                    let windowWidth, windowHeight = Win32GetWindowDimension(window)
+                                    Win32UpdateWindow(dc, windowWidth, windowHeight, gGlobalBackBuffer, x, y, width, height)
 
                                     Win32.EndPaint(window, ^paint)
                                 }
@@ -157,14 +163,11 @@ main: ()
                     Win32.DispatchMessage(^message)
                 }
 
-                RenderWeirdGradient(xOffset, yOffset)
+                RenderWeirdGradient(gGlobalBackBuffer, xOffset, yOffset)
 
                 let deviceContext = Win32.GetDC(window)
-                var clientRect: Win32.RECT
-                Win32.GetClientRect(window, ^clientRect)
-                let windowWidth = (clientRect.right - clientRect.left) as int
-                let windowHeight = (clientRect.bottom - clientRect.top) as int
-                Win32UpdateWindow(deviceContext, ^clientRect, 0, 0, windowWidth, windowHeight)
+                let windowWidth, windowHeight = Win32GetWindowDimension(window)
+                Win32UpdateWindow(deviceContext, windowWidth, windowHeight, gGlobalBackBuffer, 0, 0, windowWidth, windowHeight)
                 Win32.ReleaseDC(window, deviceContext)
 
                 xOffset += 1
