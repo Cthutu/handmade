@@ -1,6 +1,6 @@
--|                  |
- | Handmade Hero    |
- |                  |-
+--
+-- Handmade Hero
+--
 
 #import "Windows" as Win32
 
@@ -10,7 +10,6 @@ Win32OffscreenBuffer: {
     width           int
     height          int
     pitch           int
-    bytesPerPixel   int
 }
 
 var 
@@ -47,12 +46,13 @@ RenderWeirdGradient: (buffer Win32OffscreenBuffer, blueOffset int, greenOffset i
     }
 }
 
-Win32ResizeDIBSection: (buffer ^Win32OffscreenBuffer mutable, width int, height int)
+Win32ResizeDIBSection: (buffer ^Win32OffscreenBuffer, width int, height int)
 {
     if buffer^.memory Win32.VirtualFree(gBitmapMemory, 0, Win32.MEM_RELEASE)
 
-    buffer^.width = width;
-    buffer^.height = height;
+    buffer^.width = width
+    buffer^.height = height
+    let bytesPerPixel = 4
 
     buffer^.info.bmiheader = {
         biSize:         sizeof(buffer^.info.bmiHeader)
@@ -63,11 +63,11 @@ Win32ResizeDIBSection: (buffer ^Win32OffscreenBuffer mutable, width int, height 
         biCompression:  Win32.BI_RGB
     }
 
-    let bitmapMemorySize = (buffer^.width * buffer^.height) * buffer^.bytesPerPixel
+    let bitmapMemorySize = (buffer^.width * buffer^.height) * bytesPerPixel
     buffer^.memory = Win32.VirtualAlloc(null, bitmapMemorySize, Win32.MEM_COMMIT, Win32.PAGE_READWRITE)
 }
 
-Win32UpdateWindow: (dc Win32.HDC, windowWidth int, windowHeight int, buffer Win32OffscreenBuffer, x int, y int, width int, height int)
+Win32DisplayBufferInWindow: (dc Win32.HDC, windowWidth int, windowHeight int, buffer Win32OffscreenBuffer)
 {
     Win32.StretchDIBits(
         dc,
@@ -121,7 +121,7 @@ main: ()
                                     let height = paint.rcPaint.bottom - y as int
 
                                     let windowWidth, windowHeight = Win32GetWindowDimension(window)
-                                    Win32UpdateWindow(dc, windowWidth, windowHeight, gGlobalBackBuffer, x, y, width, height)
+                                    Win32DisplayBufferInWindow(dc, windowWidth, windowHeight, gGlobalBackBuffer)
 
                                     Win32.EndPaint(window, ^paint)
                                 }
@@ -167,7 +167,7 @@ main: ()
 
                 let deviceContext = Win32.GetDC(window)
                 let windowWidth, windowHeight = Win32GetWindowDimension(window)
-                Win32UpdateWindow(deviceContext, windowWidth, windowHeight, gGlobalBackBuffer, 0, 0, windowWidth, windowHeight)
+                Win32DisplayBufferInWindow(deviceContext, windowWidth, windowHeight, gGlobalBackBuffer)
                 Win32.ReleaseDC(window, deviceContext)
 
                 xOffset += 1

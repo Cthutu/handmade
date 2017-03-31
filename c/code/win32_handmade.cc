@@ -27,7 +27,6 @@ struct Win32OffscreenBuffer
     int width;
     int height;
     int pitch;
-    int bytesPerPixel;
 };
 
 global_variable bool gRunning = true;
@@ -77,7 +76,7 @@ internal void Win32ResizeDIBSection(Win32OffscreenBuffer* buffer, int width, int
 
     buffer->width = width;
     buffer->height = height;
-    buffer->bytesPerPixel = 4;
+    int bytesPerPixel = 4;
 
     // Create the new DIBSection
     buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);
@@ -87,16 +86,15 @@ internal void Win32ResizeDIBSection(Win32OffscreenBuffer* buffer, int width, int
     buffer->info.bmiHeader.biBitCount = 32;
     buffer->info.bmiHeader.biCompression = BI_RGB;
 
-    int bitmapMemorySize = (buffer->width * buffer->height) * buffer->bytesPerPixel;
+    int bitmapMemorySize = (buffer->width * buffer->height) * bytesPerPixel;
     buffer->memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 
-    buffer->pitch = width * buffer->bytesPerPixel;
+    buffer->pitch = width * bytesPerPixel;
 
 }
 
 internal void Win32DisplayBufferInWindow(HDC dc, int windowWidth, int windowHeight, 
-                                         Win32OffscreenBuffer buffer,
-                                         int x, int y, int width, int height)
+                                         Win32OffscreenBuffer buffer)
 {
     StretchDIBits(
         dc,
@@ -117,11 +115,6 @@ LRESULT CALLBACK Win32MainWindowCallback(HWND window,
 
     switch(message)
     {
-    case WM_SIZE:
-        {
-        }
-        break;
-
     case WM_CLOSE:
         {
             gRunning = false;
@@ -151,7 +144,7 @@ LRESULT CALLBACK Win32MainWindowCallback(HWND window,
             int height = paint.rcPaint.bottom - paint.rcPaint.top;
 
             Win32WindowDimension dimension = Win32GetWindowDimension(window);
-            Win32DisplayBufferInWindow(dc, dimension.width, dimension.height, gGlobalBackBuffer, x, y, width, height);
+            Win32DisplayBufferInWindow(dc, dimension.width, dimension.height, gGlobalBackBuffer);
             EndPaint(window, &paint);
         }
         break;
@@ -175,7 +168,7 @@ int CALLBACK WinMain(HINSTANCE inst,
 
     Win32ResizeDIBSection(&gGlobalBackBuffer, 1280, 720);
 
-    windowClass.style = CS_HREDRAW | CS_VREDRAW;
+    windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     windowClass.lpfnWndProc = &Win32MainWindowCallback;
     windowClass.hInstance = inst;
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
@@ -197,6 +190,8 @@ int CALLBACK WinMain(HINSTANCE inst,
             0);
         if (window)
         {
+            HDC deviceContext = GetDC(window);
+
             int xOffset = 0;
             int yOffset = 0;
 
@@ -217,11 +212,8 @@ int CALLBACK WinMain(HINSTANCE inst,
 
                 RenderWeirdGradient(gGlobalBackBuffer, xOffset, yOffset);
 
-                HDC deviceContext = GetDC(window);
                 Win32WindowDimension dimension = Win32GetWindowDimension(window);
-                Win32DisplayBufferInWindow(deviceContext, dimension.width, dimension.height, 
-                    gGlobalBackBuffer, 0, 0, dimension.width, dimension.height);
-                ReleaseDC(window, deviceContext);
+                Win32DisplayBufferInWindow(deviceContext, dimension.width, dimension.height, gGlobalBackBuffer);
 
                 ++xOffset;
                 yOffset += 2;
