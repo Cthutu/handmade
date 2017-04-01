@@ -40,8 +40,14 @@ struct Win32OffscreenBuffer
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-// XInput API
+// Global state
 
+global_variable bool gRunning = true;
+global_variable Win32OffscreenBuffer gGlobalBackBuffer;
+global_variable LPDIRECTSOUNDBUFFER gSoundBuffer;
+
+//----------------------------------------------------------------------------------------------------------------------
+// XInput API
 
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState)
 typedef X_INPUT_GET_STATE(XInputGetStateFunc);
@@ -125,8 +131,7 @@ internal void Win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
                         bufferDescription.dwBufferBytes = bufferSize;
                         bufferDescription.lpwfxFormat = &waveFormat;
 
-                        LPDIRECTSOUNDBUFFER secondaryBuffer;
-                        if (SUCCEEDED(directSound->CreateSoundBuffer(&bufferDescription, &secondaryBuffer, 0)))
+                        if (SUCCEEDED(directSound->CreateSoundBuffer(&bufferDescription, &gSoundBuffer, 0)))
                         {
                             OutputDebugStringA("Created secondary sound buffer\n");
                         }
@@ -148,12 +153,6 @@ internal void Win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
         }
     }
 }
-
-//----------------------------------------------------------------------------------------------------------------------
-// Global state
-
-global_variable bool gRunning = true;
-global_variable Win32OffscreenBuffer gGlobalBackBuffer;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Win32GetWindowDimension
@@ -385,10 +384,22 @@ int CALLBACK WinMain(HINSTANCE inst,
         {
             HDC deviceContext = GetDC(window);
 
+            // Graphics test
             int xOffset = 0;
             int yOffset = 0;
 
-            Win32InitDSound(window, 48000, 48000*sizeof(s16)*2);
+            // Sound test
+            int samplesPerSecond = 48000;
+            int toneHz = 256;
+            s16 toneVolume = 3000;
+            u32 runningSampleIndex = 0;
+            int squareWavePeriod = samplesPerSecond / toneHz;
+            int halfSquareWavePeriod = squareWavePeriod / 2;
+            int bytesPerSample = sizeof(s16) * 2;
+            int bufferSize = samplesPerSecond * bytesPerSample;
+
+            Win32InitDSound(window, samplesPerSecond, bufferSize);
+            gSoundBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
             gRunning = true;
             while(gRunning)
@@ -439,6 +450,61 @@ int CALLBACK WinMain(HINSTANCE inst,
                 }
 
                 RenderWeirdGradient(&gGlobalBackBuffer, xOffset, yOffset);
+
+                // DSound output test
+                DWORD playCursor = 0;
+                DWORD writeCursor = 0;
+                if (SUCCEEDED(gSoundBuffer->GetCurrentPosition(&playCursor, &writeCursor)))
+                {
+                    DWORD byteToLock = runningSampleIndex * bytesPerSample % bufferSize;
+                    DWORD bytesToWrite;
+                    if (byteToLock > playCursor)
+                    {
+                        // Case 1:
+                        // |********P-------W********|
+                        bytesToWrite = bufferSize - byteToLock;
+                        bytesToWrite += playCursor;
+                    }
+                    else
+                    {
+                        // Case 2:
+                        // |--------W*******P--------|
+                        bytesToWrite = playCursor - byteToLock;
+                    }
+
+                    void* region1 = nullptr;
+                    DWORD region1Size = 0;
+                    void* region2 = nullptr;
+                    DWORD region2Size = 0;
+
+                    if (SUCCEEDED(gSoundBuffer->Lock(byteToLock, bytesToWrite, 
+                                                     &region1, &region1Size, 
+                                                     &region2, &region2Size, 
+                                                     0)))
+                    {
+                        // Region 1 fill
+                        DWORD region1SampleCount = region1Size / bytesPerSample;
+                        s16* sampleOut = (s16 *)region1;
+                        for (DWORD sampleIndex = 0; sampleIndex < region1SampleCount; ++sampleIndex)
+                        {
+                            s16 sampleValue = ((runningSampleIndex++ / halfSquareWavePeriod)) % 2 ? toneVolume : -toneVolume;
+                            *sampleOut++ = sampleValue;
+                            *sampleOut++ = sampleValue;
+                        }
+
+                        // Region 2 fill
+                        DWORD region2SampleCount = region2Size / bytesPerSample;
+                        sampleOut = (s16 *)region2;
+                        for (DWORD sampleIndex = 0; sampleIndex < region2SampleCount; ++sampleIndex)
+                        {
+                            s16 sampleValue = ((runningSampleIndex++ / halfSquareWavePeriod)) % 2 ? toneVolume : -toneVolume;
+                            *sampleOut++ = sampleValue;
+                            *sampleOut++ = sampleValue;
+                        }
+
+                        gSoundBuffer->Unlock(region1, region1Size, region2, region2Size);
+                    }
+                }
 
                 Win32WindowDimension dimension = Win32GetWindowDimension(window);
                 Win32DisplayBufferInWindow(&gGlobalBackBuffer, deviceContext, dimension.width, dimension.height);
