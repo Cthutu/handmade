@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <stdint.h>
 #include <Xinput.h>
+#include <dsound.h>
 
 #define internal static
 #define local_persist static
@@ -23,6 +24,8 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
+typedef int32_t b32;
+typedef int64_t b64;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Win32OffscreenBuffer
@@ -44,7 +47,7 @@ struct Win32OffscreenBuffer
 typedef X_INPUT_GET_STATE(XInputGetStateFunc);
 X_INPUT_GET_STATE(XInputGetStateStub)
 {
-    return 0;
+    return ERROR_DEVICE_NOT_CONNECTED;
 }
 global_variable XInputGetStateFunc* XInputGetState_ = XInputGetStateStub;
 
@@ -52,7 +55,7 @@ global_variable XInputGetStateFunc* XInputGetState_ = XInputGetStateStub;
 typedef X_INPUT_SET_STATE(XInputSetStateFunc);
 X_INPUT_SET_STATE(XInputSetStateStub)
 {
-    return 0;
+    return ERROR_DEVICE_NOT_CONNECTED;
 }
 global_variable XInputSetStateFunc* XInputSetState_ = XInputSetStateStub;
 
@@ -61,7 +64,12 @@ global_variable XInputSetStateFunc* XInputSetState_ = XInputSetStateStub;
 
 internal void Win32LoadXInput()
 {
-    HMODULE xInputLibrary = LoadLibraryA("xinput1_3.dll");
+    HMODULE xInputLibrary = LoadLibraryA("xinput1_4.dll");
+    if (!xInputLibrary)
+    {
+        xInputLibrary = LoadLibraryA("xinput1_3.dll");
+    }
+
     if (xInputLibrary)
     {
         XInputGetState = (XInputGetStateFunc*)GetProcAddress(xInputLibrary, "XInputGetState");
@@ -69,6 +77,75 @@ internal void Win32LoadXInput()
 
         XInputSetState = (XInputSetStateFunc*)GetProcAddress(xInputLibrary, "XInputSetState");
         if (!XInputSetState) XInputSetState = XInputSetStateStub;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Sound management
+
+#define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND* ppDS, LPUNKNOWN pUnkOuter)
+typedef DIRECT_SOUND_CREATE(DirectSoundCreateFunc);
+
+internal void Win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
+{
+    // Load the library
+    HMODULE dSoundLibrary = LoadLibraryA("dsound.dll");
+    if (dSoundLibrary)
+    {
+        // Get a DirectSound object
+        DirectSoundCreateFunc* DirectSoundCreate = (DirectSoundCreateFunc*)GetProcAddress(dSoundLibrary, 
+                                                                                          "DirectSoundCreate");
+        LPDIRECTSOUND directSound;
+        if (DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &directSound, 0)))
+        {
+            WAVEFORMATEX waveFormat = {};
+            waveFormat.wFormatTag = WAVE_FORMAT_PCM;
+            waveFormat.nChannels = 2;
+            waveFormat.wBitsPerSample = 16;
+            waveFormat.nSamplesPerSec = samplesPerSec;
+            waveFormat.nBlockAlign = waveFormat.nChannels * waveFormat.wBitsPerSample / 8;
+            waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
+            waveFormat.cbSize = 0;
+
+            if (SUCCEEDED(directSound->SetCooperativeLevel(window, DSSCL_PRIORITY)))
+            {
+                // Create a primary buffer
+                DSBUFFERDESC bufferDescription = { };
+                bufferDescription.dwSize = sizeof(bufferDescription);
+                bufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
+
+                LPDIRECTSOUNDBUFFER primaryBuffer;
+                if (SUCCEEDED(directSound->CreateSoundBuffer(&bufferDescription, &primaryBuffer, 0)))
+                {
+                    if (SUCCEEDED(primaryBuffer->SetFormat(&waveFormat)))
+                    {
+                        DSBUFFERDESC bufferDescription = {};
+                        bufferDescription.dwSize = sizeof(bufferDescription);
+                        bufferDescription.dwFlags = 0;
+                        bufferDescription.dwBufferBytes = bufferSize;
+                        bufferDescription.lpwfxFormat = &waveFormat;
+
+                        LPDIRECTSOUNDBUFFER secondaryBuffer;
+                        if (SUCCEEDED(directSound->CreateSoundBuffer(&bufferDescription, &secondaryBuffer, 0)))
+                        {
+                            OutputDebugStringA("Created secondary sound buffer\n");
+                        }
+                    }
+                    else
+                    {
+                        OutputDebugStringA("ERROR: Could not set format on primary buffer\n");
+                    }
+                }
+                else
+                {
+                    OutputDebugStringA("ERROR: Could not create primary buffer");
+                }
+            }
+            else
+            {
+                OutputDebugStringA("ERROR: Could not set cooperative level");
+            }
+        }
     }
 }
 
@@ -142,7 +219,7 @@ internal void Win32ResizeDIBSection(Win32OffscreenBuffer* buffer, int width, int
     buffer->info.bmiHeader.biCompression = BI_RGB;
 
     int bitmapMemorySize = (buffer->width * buffer->height) * bytesPerPixel;
-    buffer->memory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
+    buffer->memory = VirtualAlloc(0, bitmapMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
     buffer->pitch = width * bytesPerPixel;
 
@@ -240,9 +317,12 @@ LRESULT CALLBACK Win32MainWindowCallback(HWND window,
                 else if (vkCode == VK_SPACE)
                 {
                 }
-                else
-                {
-                }
+            }
+
+            b64 altKeyWasDown = (lParam & (1ull << 29));
+            if ((vkCode == VK_F4) && altKeyWasDown)
+            {
+                gRunning = false;
             }
         }
         break;
@@ -276,7 +356,7 @@ int CALLBACK WinMain(HINSTANCE inst,
                      int cmdShow)
 {
     Win32LoadXInput();
-
+ 
     WNDCLASSA windowClass = {};
 
     Win32ResizeDIBSection(&gGlobalBackBuffer, 1280, 720);
@@ -307,6 +387,8 @@ int CALLBACK WinMain(HINSTANCE inst,
 
             int xOffset = 0;
             int yOffset = 0;
+
+            Win32InitDSound(window, 48000, 48000*sizeof(s16)*2);
 
             gRunning = true;
             while(gRunning)
