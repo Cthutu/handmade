@@ -3,10 +3,11 @@
 //
 
 #include <Windows.h>
-#include <stdint.h>
-#include <Xinput.h>
 #include <dsound.h>
 #include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <Xinput.h>
 
 #define internal static
 #define local_persist static
@@ -469,6 +470,10 @@ int CALLBACK WinMain(HINSTANCE inst,
                      LPSTR cmdLine, 
                      int cmdShow)
 {
+    LARGE_INTEGER perfCounterFrequencyResult;
+    QueryPerformanceFrequency(&perfCounterFrequencyResult);
+    s64 perfCounterFrequency = perfCounterFrequencyResult.QuadPart;
+
     Win32LoadXInput();
  
     WNDCLASSA windowClass = {};
@@ -517,7 +522,16 @@ int CALLBACK WinMain(HINSTANCE inst,
             Win32FillSound(&soundOutput, 0, soundOutput.latencySampleCount * soundOutput.bytesPerSample);
             gSoundBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
+            //----------------------------------------------------------------------------------------------------------
+            // Main loop
+
             gRunning = true;
+
+            LARGE_INTEGER lastCounter;
+            QueryPerformanceCounter(&lastCounter);
+
+            u64 lastCycleCount = __rdtsc();
+
             while(gRunning)
             {
                 MSG message;
@@ -575,8 +589,10 @@ int CALLBACK WinMain(HINSTANCE inst,
                 DWORD writeCursor = 0;
                 if (SUCCEEDED(gSoundBuffer->GetCurrentPosition(&playCursor, &writeCursor)))
                 {
-                    DWORD byteToLock = (soundOutput.runningSampleIndex * soundOutput.bytesPerSample) % soundOutput.bufferSize;
-                    DWORD targetCursor = (playCursor + (soundOutput.latencySampleCount * soundOutput.bytesPerSample)) % soundOutput.bufferSize;
+                    DWORD byteToLock = (soundOutput.runningSampleIndex * soundOutput.bytesPerSample) 
+                        % soundOutput.bufferSize;
+                    DWORD targetCursor = (playCursor + (soundOutput.latencySampleCount * soundOutput.bytesPerSample))
+                        % soundOutput.bufferSize;
                     DWORD bytesToWrite = 0;
                     if (byteToLock > targetCursor)
                     {
@@ -598,9 +614,34 @@ int CALLBACK WinMain(HINSTANCE inst,
                 Win32WindowDimension dimension = Win32GetWindowDimension(window);
                 Win32DisplayBufferInWindow(&gGlobalBackBuffer, deviceContext, dimension.width, dimension.height);
 
-                ++xOffset;
-            }
-        }
+                //
+                // Update clock
+                //
+
+                u64 endCycleCount = __rdtsc();
+
+                LARGE_INTEGER endCounter;
+                QueryPerformanceCounter(&endCounter);
+
+                // Display value here
+                u64 cyclesElapsed = endCycleCount - lastCycleCount;
+                s64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
+                f64 msPerFrame = ((1000.0f * counterElapsed) / (f64)perfCounterFrequency);
+
+                f64 fps = (f64)perfCounterFrequency / (f64)counterElapsed;
+                f64 mcpf = (f64)cyclesElapsed / (1000.f * 1000.f);
+                
+                char buffer[256];
+                sprintf(buffer, "%fms/f, %ff/s, %fMc/f\n", msPerFrame, fps, mcpf);
+                OutputDebugStringA(buffer);
+
+                lastCounter = endCounter;
+                lastCycleCount = endCycleCount;
+            } // while
+
+            //----------------------------------------------------------------------------------------------------------
+
+        } // if (window)
     }
     else
     {
