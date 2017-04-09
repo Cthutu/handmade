@@ -34,6 +34,7 @@ solution "Handmade"
 		files {
 			"../code/**.h",
 			"../code/**.cc",
+            "../code/**.inl"
 		}
 		links {
 		}
@@ -46,7 +47,8 @@ solution "Handmade"
 		-- }
 		configuration "Win*"
 			defines {
-				"WIN32"
+				"WIN32",
+                "HANDMADE_WIN32=1",
 			}
 			flags { "WinMain" }
 		

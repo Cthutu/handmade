@@ -1,38 +1,35 @@
-//
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 // Handmade Hero
-//
-
-#include <Windows.h>
-#include <dsound.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <Xinput.h>
-
-#define internal static
-#define local_persist static
-#define global_variable static
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------------------------
 // INDEX
 //
-//  CONSTS      Basic constants
+//  COMMON      Common cross-platform declarations defined with platform-specific definitions.
 //  GLOBALS     Global variables
 //  INPUT       Input management
 //  MAIN        Main loop
+//  PLATFORM    Cross-platform code
 //  RENDER      Rendering
 //  SOUND       Sound management
 //  STRUCTS     Global structs
-//  TYPES       Basic typedefs
 //
 //----------------------------------------------------------------------------------------------------------------------
 
+//--------------------------------------------------------------------------------------------------------------{COMMON}
+//----------------------------------------------------------------------------------------------------------------------
+// COMMON DEFINITIONS
+// These declarations are common across platforms but their definitions are platform specific.
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
-//---------------------------------------------------------------------------------------------------------------{TYPES}
-//----------------------------------------------------------------------------------------------------------------------
-// B A S I C   T Y P E   D E F I N I T I O N S
-//----------------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------------
+#include <stdint.h>
+
+#define internal static
+#define local_persist static
+#define global_variable static
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -50,13 +47,21 @@ typedef int64_t b64;
 typedef float f32;
 typedef double f64;
 
-//--------------------------------------------------------------------------------------------------------------{CONSTS}
+#define kPI 3.14159265359f
+
 //----------------------------------------------------------------------------------------------------------------------
-// C O N S T S
+//----------------------------------------------------------------------------------------------------------------------
+// C R O S S - P L A T F O R M   C O D E
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
-#define kPI 3.14159265359f
+#include "handmade.inl"
+
+#include <Windows.h>
+#include <dsound.h>
+#include <stdio.h>
+#include <Xinput.h>
+#include <math.h>
 
 //-------------------------------------------------------------------------------------------------------------{STRUCTS}
 //----------------------------------------------------------------------------------------------------------------------
@@ -155,7 +160,7 @@ struct Win32SoundOutput
     int latencySampleCount;
 };
 
-internal void Win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
+internal void win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
 {
     // Load the library
     HMODULE dSoundLibrary = LoadLibraryA("dsound.dll");
@@ -217,7 +222,7 @@ internal void Win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
     }
 }
 
-void Win32FillSound(Win32SoundOutput* soundOutput, DWORD byteToLock, DWORD bytesToWrite)
+void win32FillSound(Win32SoundOutput* soundOutput, DWORD byteToLock, DWORD bytesToWrite)
 {
     void* region1 = nullptr;
     DWORD region1Size = 0;
@@ -276,7 +281,7 @@ struct Win32WindowDimension
     int height;
 };
 
-Win32WindowDimension Win32GetWindowDimension(HWND window)
+Win32WindowDimension win32GetWindowDimension(HWND window)
 {
     RECT clientRect;
     GetClientRect(window, &clientRect);
@@ -287,31 +292,9 @@ Win32WindowDimension Win32GetWindowDimension(HWND window)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// Test render
-
-internal void RenderWeirdGradient(Win32OffscreenBuffer* buffer, int blueOffset, int greenOffset)
-{
-    u8* row = (u8 *)buffer->memory;
-    for (int y = 0; y < buffer->height; ++y)
-    {
-        u32* pixel = (u32 *)row;
-        for (int x = 0; x < buffer->width; ++x)
-        {
-            // Pixel in memory: 00 RR GG BB
-            u8 blue = (x + blueOffset);
-            u8 green = (y + greenOffset);
-
-            *pixel++ = (((u32)green << 8) | blue);
-        }
-
-        row += buffer->pitch;
-    }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 // Backbuffer creation
 
-internal void Win32ResizeDIBSection(Win32OffscreenBuffer* buffer, int width, int height)
+internal void win32ResizeDIBSection(Win32OffscreenBuffer* buffer, int width, int height)
 {
     if (buffer->memory)
     {
@@ -340,7 +323,7 @@ internal void Win32ResizeDIBSection(Win32OffscreenBuffer* buffer, int width, int
 //----------------------------------------------------------------------------------------------------------------------
 // Win32 rendering
 
-internal void Win32DisplayBufferInWindow(Win32OffscreenBuffer* buffer, HDC dc, int windowWidth, int windowHeight)
+internal void win32DisplayBufferInWindow(Win32OffscreenBuffer* buffer, HDC dc, int windowWidth, int windowHeight)
 {
     StretchDIBits(
         dc,
@@ -358,7 +341,7 @@ internal void Win32DisplayBufferInWindow(Win32OffscreenBuffer* buffer, HDC dc, i
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
-LRESULT CALLBACK Win32MainWindowCallback(HWND window, 
+LRESULT CALLBACK win32MainWindowCallback(HWND window, 
                                          UINT message,
                                          WPARAM wParam,
                                          LPARAM lParam)
@@ -446,8 +429,8 @@ LRESULT CALLBACK Win32MainWindowCallback(HWND window,
         {
             PAINTSTRUCT paint;
             HDC dc = BeginPaint(window, &paint);
-            Win32WindowDimension dimension = Win32GetWindowDimension(window);
-            Win32DisplayBufferInWindow(&gGlobalBackBuffer, dc, dimension.width, dimension.height);
+            Win32WindowDimension dimension = win32GetWindowDimension(window);
+            win32DisplayBufferInWindow(&gGlobalBackBuffer, dc, dimension.width, dimension.height);
             EndPaint(window, &paint);
         }
         break;
@@ -478,10 +461,10 @@ int CALLBACK WinMain(HINSTANCE inst,
  
     WNDCLASSA windowClass = {};
 
-    Win32ResizeDIBSection(&gGlobalBackBuffer, 1280, 720);
+    win32ResizeDIBSection(&gGlobalBackBuffer, 1280, 720);
 
     windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-    windowClass.lpfnWndProc = &Win32MainWindowCallback;
+    windowClass.lpfnWndProc = &win32MainWindowCallback;
     windowClass.hInstance = inst;
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
@@ -518,8 +501,8 @@ int CALLBACK WinMain(HINSTANCE inst,
             soundOutput.tSine = 0;
             soundOutput.latencySampleCount = soundOutput.samplesPerSecond / 15;
 
-            Win32InitDSound(window, soundOutput.samplesPerSecond, soundOutput.bufferSize);
-            Win32FillSound(&soundOutput, 0, soundOutput.latencySampleCount * soundOutput.bytesPerSample);
+            win32InitDSound(window, soundOutput.samplesPerSecond, soundOutput.bufferSize);
+            win32FillSound(&soundOutput, 0, soundOutput.latencySampleCount * soundOutput.bytesPerSample);
             gSoundBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
             //----------------------------------------------------------------------------------------------------------
@@ -582,7 +565,12 @@ int CALLBACK WinMain(HINSTANCE inst,
                     }
                 }
 
-                RenderWeirdGradient(&gGlobalBackBuffer, xOffset, yOffset);
+                GameOffscreenBuffer buffer = {};
+                buffer.memory = gGlobalBackBuffer.memory;
+                buffer.width = gGlobalBackBuffer.width;
+                buffer.height = gGlobalBackBuffer.height;
+                buffer.pitch = gGlobalBackBuffer.pitch;
+                gameUpdateAndRender(&buffer, xOffset, yOffset);
 
                 // DSound output test
                 DWORD playCursor = 0;
@@ -608,11 +596,11 @@ int CALLBACK WinMain(HINSTANCE inst,
                         bytesToWrite = targetCursor - byteToLock;
                     }
 
-                    Win32FillSound(&soundOutput, byteToLock, bytesToWrite);
+                    win32FillSound(&soundOutput, byteToLock, bytesToWrite);
                 }
 
-                Win32WindowDimension dimension = Win32GetWindowDimension(window);
-                Win32DisplayBufferInWindow(&gGlobalBackBuffer, deviceContext, dimension.width, dimension.height);
+                Win32WindowDimension dimension = win32GetWindowDimension(window);
+                win32DisplayBufferInWindow(&gGlobalBackBuffer, deviceContext, dimension.width, dimension.height);
 
                 //
                 // Update clock
@@ -621,19 +609,18 @@ int CALLBACK WinMain(HINSTANCE inst,
                 u64 endCycleCount = __rdtsc();
 
                 LARGE_INTEGER endCounter;
-                QueryPerformanceCounter(&endCounter);
+                QueryPerformanceCounter(&endCounter); 
 
                 // Display value here
                 u64 cyclesElapsed = endCycleCount - lastCycleCount;
                 s64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
                 f64 msPerFrame = ((1000.0f * counterElapsed) / (f64)perfCounterFrequency);
-
                 f64 fps = (f64)perfCounterFrequency / (f64)counterElapsed;
                 f64 mcpf = (f64)cyclesElapsed / (1000.f * 1000.f);
                 
-                char buffer[256];
-                sprintf(buffer, "%fms/f, %ff/s, %fMc/f\n", msPerFrame, fps, mcpf);
-                OutputDebugStringA(buffer);
+//                 char buffer[256];
+//                 sprintf(buffer, "%fms/f, %ff/s, %fMc/f\n", msPerFrame, fps, mcpf);
+//                 OutputDebugStringA(buffer);
 
                 lastCounter = endCounter;
                 lastCycleCount = endCycleCount;
