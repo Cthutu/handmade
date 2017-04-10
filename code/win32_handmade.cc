@@ -20,12 +20,14 @@
 
 //--------------------------------------------------------------------------------------------------------------{COMMON}
 //----------------------------------------------------------------------------------------------------------------------
-// COMMON DEFINITIONS
+// C O M M O N   D E F I N I T I O N S
+//
 // These declarations are common across platforms but their definitions are platform specific.
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
 #include <stdint.h>
+#include <math.h>
 
 #define internal static
 #define local_persist static
@@ -59,9 +61,9 @@ typedef double f64;
 
 #include <Windows.h>
 #include <dsound.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <Xinput.h>
-#include <math.h>
 
 //-------------------------------------------------------------------------------------------------------------{STRUCTS}
 //----------------------------------------------------------------------------------------------------------------------
@@ -222,7 +224,36 @@ internal void win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
     }
 }
 
-void win32FillSound(Win32SoundOutput* soundOutput, DWORD byteToLock, DWORD bytesToWrite)
+internal void win32ClearBuffer(Win32SoundOutput* soundOutput)
+{
+    void* region1 = nullptr;
+    DWORD region1Size = 0;
+    void* region2 = nullptr;
+    DWORD region2Size = 0;
+
+    if (SUCCEEDED(gSoundBuffer->Lock(0, soundOutput->bufferSize,
+                                     &region1, &region1Size,
+                                     &region2, &region2Size,
+                                     0)))
+    {
+        s8* destSample = (s8 *)region1;
+        for (DWORD byteIndex = 0; byteIndex < region1Size; ++byteIndex)
+        {
+            *destSample++ = 0;
+        }
+
+        destSample = (s8 *)region2;
+        for (DWORD byteIndex = 0; byteIndex < region2Size; ++byteIndex)
+        {
+            *destSample++ = 0;
+        }
+
+        gSoundBuffer->Unlock(region1, region1Size, region2, region2Size);
+    }
+}
+
+internal void win32FillSound(Win32SoundOutput* soundOutput, DWORD byteToLock, DWORD bytesToWrite, 
+                    GameSoundOutputBuffer* sourceBuffer)
 {
     void* region1 = nullptr;
     DWORD region1Size = 0;
@@ -230,34 +261,28 @@ void win32FillSound(Win32SoundOutput* soundOutput, DWORD byteToLock, DWORD bytes
     DWORD region2Size = 0;
 
     if (SUCCEEDED(gSoundBuffer->Lock(byteToLock, bytesToWrite,
-        &region1, &region1Size,
-        &region2, &region2Size,
-        0)))
+                                     &region1, &region1Size,
+                                     &region2, &region2Size,
+                                     0)))
     {
         // Region 1 fill
         DWORD region1SampleCount = region1Size / soundOutput->bytesPerSample;
-        s16* sampleOut = (s16 *)region1;
+        s16* destSample = (s16 *)region1;
+        s16* srcSample = sourceBuffer->samples;
         for (DWORD sampleIndex = 0; sampleIndex < region1SampleCount; ++sampleIndex)
         {
-            f32 sineValue = sinf(soundOutput->tSine);
-            s16 sampleValue = (s16)(sineValue * soundOutput->toneVolume);
-            *sampleOut++ = sampleValue;
-            *sampleOut++ = sampleValue;
-
-            soundOutput->tSine += 2.0f * kPI / soundOutput->wavePeriod;
+            *destSample++ = *srcSample++;
+            *destSample++ = *srcSample++;
             ++soundOutput->runningSampleIndex;
         }
 
         // Region 2 fill
         DWORD region2SampleCount = region2Size / soundOutput->bytesPerSample;
-        sampleOut = (s16 *)region2;
+        destSample = (s16 *)region2;
         for (DWORD sampleIndex = 0; sampleIndex < region2SampleCount; ++sampleIndex)
         {
-            f32 sineValue = sinf(soundOutput->tSine);
-            s16 sampleValue = (s16)(sineValue * soundOutput->toneVolume);
-            *sampleOut++ = sampleValue;
-            *sampleOut++ = sampleValue;
-            soundOutput->tSine += 2.0f * kPI / soundOutput->wavePeriod;
+            *destSample++ = *srcSample++;
+            *destSample++ = *srcSample++;
             ++soundOutput->runningSampleIndex;
         }
 
@@ -498,12 +523,14 @@ int CALLBACK WinMain(HINSTANCE inst,
             soundOutput.wavePeriod = soundOutput.samplesPerSecond / soundOutput.toneHz;
             soundOutput.bytesPerSample = sizeof(s16) * 2;
             soundOutput.bufferSize = soundOutput.samplesPerSecond * soundOutput.bytesPerSample;
-            soundOutput.tSine = 0;
             soundOutput.latencySampleCount = soundOutput.samplesPerSecond / 15;
 
             win32InitDSound(window, soundOutput.samplesPerSecond, soundOutput.bufferSize);
-            win32FillSound(&soundOutput, 0, soundOutput.latencySampleCount * soundOutput.bytesPerSample);
+            win32ClearBuffer(&soundOutput);
             gSoundBuffer->Play(0, 0, DSBPLAY_LOOPING);
+
+            s16* samples = (s16 *)VirtualAlloc(0, soundOutput.bufferSize, 
+                                               MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
             //----------------------------------------------------------------------------------------------------------
             // Main loop
@@ -565,23 +592,18 @@ int CALLBACK WinMain(HINSTANCE inst,
                     }
                 }
 
-                GameOffscreenBuffer buffer = {};
-                buffer.memory = gGlobalBackBuffer.memory;
-                buffer.width = gGlobalBackBuffer.width;
-                buffer.height = gGlobalBackBuffer.height;
-                buffer.pitch = gGlobalBackBuffer.pitch;
-                gameUpdateAndRender(&buffer, xOffset, yOffset);
-
-                // DSound output test
+                DWORD byteToLock = 0;
+                DWORD targetCursor = 0;
+                DWORD bytesToWrite = 0;
                 DWORD playCursor = 0;
                 DWORD writeCursor = 0;
+                bool soundIsValid = false;
                 if (SUCCEEDED(gSoundBuffer->GetCurrentPosition(&playCursor, &writeCursor)))
                 {
-                    DWORD byteToLock = (soundOutput.runningSampleIndex * soundOutput.bytesPerSample) 
+                    byteToLock = (soundOutput.runningSampleIndex * soundOutput.bytesPerSample) 
                         % soundOutput.bufferSize;
-                    DWORD targetCursor = (playCursor + (soundOutput.latencySampleCount * soundOutput.bytesPerSample))
+                    targetCursor = (playCursor + (soundOutput.latencySampleCount * soundOutput.bytesPerSample))
                         % soundOutput.bufferSize;
-                    DWORD bytesToWrite = 0;
                     if (byteToLock > targetCursor)
                     {
                         // Case 1:
@@ -596,7 +618,26 @@ int CALLBACK WinMain(HINSTANCE inst,
                         bytesToWrite = targetCursor - byteToLock;
                     }
 
-                    win32FillSound(&soundOutput, byteToLock, bytesToWrite);
+                    soundIsValid = true;
+                }
+                
+                GameSoundOutputBuffer soundBuffer = {};
+                soundBuffer.samplesPerSecond = soundOutput.samplesPerSecond;
+                soundBuffer.sampleCount = bytesToWrite / soundOutput.bytesPerSample;
+                soundBuffer.samples = samples;
+
+                GameOffscreenBuffer buffer = {};
+                buffer.memory = gGlobalBackBuffer.memory;
+                buffer.width = gGlobalBackBuffer.width;
+                buffer.height = gGlobalBackBuffer.height;
+                buffer.pitch = gGlobalBackBuffer.pitch;
+
+                gameUpdateAndRender(&buffer, xOffset, yOffset, &soundBuffer, soundOutput.toneHz);
+
+                // DSound output test
+                if (soundIsValid)
+                {
+                    win32FillSound(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
                 }
 
                 Win32WindowDimension dimension = win32GetWindowDimension(window);

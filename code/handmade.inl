@@ -6,6 +6,38 @@
 
 #include "handmade.h"
 
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+// A U D I O
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
+void gameOutputSound(GameSoundOutputBuffer* soundBuffer, int toneHz)
+{
+    local_persist f32 tSine;
+    s16 toneVolume = 3000;
+    s16* sampleOut = soundBuffer->samples;
+    int wavePeriod = soundBuffer->samplesPerSecond / toneHz;
+
+    for (int sampleIndex = 0; sampleIndex < soundBuffer->sampleCount; ++sampleIndex)
+    {
+        f32 sineValue = sinf(tSine);
+        s16 sampleValue = (s16)(sineValue * toneVolume);
+        *sampleOut++ = sampleValue;
+        *sampleOut++ = sampleValue;
+
+        tSine += 2.0f * kPI / wavePeriod;
+    }
+
+    
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+// R E N D E R I N G
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
 internal void renderWeirdGradient(GameOffscreenBuffer* buffer, int blueOffset, int greenOffset)
 {
     u8* row = (u8 *)buffer->memory;
@@ -25,9 +57,16 @@ internal void renderWeirdGradient(GameOffscreenBuffer* buffer, int blueOffset, i
     }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+// M A I N   L O O P 
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
-
-internal void gameUpdateAndRender(GameOffscreenBuffer* buffer, int blueOffset, int greenOffset)
+internal void gameUpdateAndRender(GameOffscreenBuffer* buffer, int blueOffset, int greenOffset,
+                                  GameSoundOutputBuffer* soundBuffer, int toneHz)
 {
+    gameOutputSound(soundBuffer, toneHz);
+
     renderWeirdGradient(buffer, blueOffset, greenOffset);
 }
