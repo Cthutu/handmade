@@ -63,10 +63,13 @@ internal void renderWeirdGradient(GameOffscreenBuffer* buffer, int blueOffset, i
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
-internal void gameUpdateAndRender(GameOffscreenBuffer* buffer, int blueOffset, int greenOffset,
-                                  GameSoundOutputBuffer* soundBuffer, int toneHz)
+internal void gameUpdateAndRender(GameOffscreenBuffer* buffer,
+                                  GameSoundOutputBuffer* soundBuffer)
 {
-    gameOutputSound(soundBuffer, toneHz);
+    local_persist int blueOffset = 0;
+    local_persist int greenOffset = 0;
+    local_persist int toneHz = 256;
 
+    gameOutputSound(soundBuffer, toneHz);
     renderWeirdGradient(buffer, blueOffset, greenOffset);
 }

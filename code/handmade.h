@@ -14,10 +14,10 @@
 
 struct GameOffscreenBuffer
 {
-    void* memory;
-    int width;
-    int height;
-    int pitch;
+    void*   memory;
+    int     width;
+    int     height;
+    int     pitch;
 };
 
 struct GameSoundOutputBuffer
@@ -27,8 +27,8 @@ struct GameSoundOutputBuffer
     s16*    samples;
 };
 
-internal void gameUpdateAndRender(GameOffscreenBuffer* buffer, int blueOffset, int greenOffset,
-                                  GameSoundOutputBuffer* soundBuffer, int toneHz);
+internal void gameUpdateAndRender(GameOffscreenBuffer* buffer, 
+                                  GameSoundOutputBuffer* soundBuffer);
 
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------

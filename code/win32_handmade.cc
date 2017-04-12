@@ -14,7 +14,6 @@
 //  PLATFORM    Cross-platform code
 //  RENDER      Rendering
 //  SOUND       Sound management
-//  STRUCTS     Global structs
 //
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -65,23 +64,7 @@ typedef double f64;
 #include <stdio.h>
 #include <Xinput.h>
 
-//-------------------------------------------------------------------------------------------------------------{STRUCTS}
-//----------------------------------------------------------------------------------------------------------------------
-// G L O B A L   S T R U C T S
-//----------------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------------------------------------------
-// Win32OffscreenBuffer
-
-struct Win32OffscreenBuffer
-{
-    BITMAPINFO info;
-    void* memory;
-    int width;
-    int height;
-    int pitch;
-};
+#include "win32_handmade.h"
 
 //-------------------------------------------------------------------------------------------------------------{GLOBALS}
 //----------------------------------------------------------------------------------------------------------------------
@@ -148,19 +131,6 @@ internal void Win32LoadXInput()
 
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND* ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(DirectSoundCreateFunc);
-
-struct Win32SoundOutput
-{
-    int samplesPerSecond;
-    int toneHz;
-    s16 toneVolume;
-    u32 runningSampleIndex;
-    int wavePeriod;
-    int bytesPerSample;
-    int bufferSize;
-    f32 tSine;
-    int latencySampleCount;
-};
 
 internal void win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
 {
@@ -296,15 +266,6 @@ internal void win32FillSound(Win32SoundOutput* soundOutput, DWORD byteToLock, DW
 // R E N D E R I N G
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------------------------------------------
-// Win32GetWindowDimension
-
-struct Win32WindowDimension
-{
-    int width;
-    int height;
-};
 
 Win32WindowDimension win32GetWindowDimension(HWND window)
 {
@@ -580,9 +541,6 @@ int CALLBACK WinMain(HINSTANCE inst,
                         s16 stickX = pad->sThumbLX;
                         s16 stickY = pad->sThumbLY;
 
-                        xOffset += stickX / 4096;
-                        yOffset += stickY / 4096;
-
                         soundOutput.toneHz = 512 + (int)(256.0f * ((f32)stickY / 30000.0f));
                         soundOutput.wavePeriod = soundOutput.samplesPerSecond / soundOutput.toneHz;
                     }
@@ -632,7 +590,7 @@ int CALLBACK WinMain(HINSTANCE inst,
                 buffer.height = gGlobalBackBuffer.height;
                 buffer.pitch = gGlobalBackBuffer.pitch;
 
-                gameUpdateAndRender(&buffer, xOffset, yOffset, &soundBuffer, soundOutput.toneHz);
+                gameUpdateAndRender(&buffer, &soundBuffer);
 
                 // DSound output test
                 if (soundIsValid)
