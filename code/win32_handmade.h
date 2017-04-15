@@ -32,7 +32,7 @@ struct Win32SoundOutput
 {
     int samplesPerSecond;
     int toneHz;
-    s16 toneVolume;
+    i16 toneVolume;
     u32 runningSampleIndex;
     int bytesPerSample;
     int bufferSize;

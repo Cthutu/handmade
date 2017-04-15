@@ -15,14 +15,14 @@
 void gameOutputSound(GameSoundOutputBuffer* soundBuffer, int toneHz)
 {
     local_persist f32 tSine;
-    s16 toneVolume = 3000;
-    s16* sampleOut = soundBuffer->samples;
+    i16 toneVolume = 3000;
+    i16* sampleOut = soundBuffer->samples;
     int wavePeriod = soundBuffer->samplesPerSecond / toneHz;
 
     for (int sampleIndex = 0; sampleIndex < soundBuffer->sampleCount; ++sampleIndex)
     {
         f32 sineValue = sinf(tSine);
-        s16 sampleValue = (s16)(sineValue * toneVolume);
+        i16 sampleValue = (i16)(sineValue * toneVolume);
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
 
@@ -63,20 +63,26 @@ internal void renderWeirdGradient(GameOffscreenBuffer* buffer, int blueOffset, i
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
-internal void gameUpdateAndRender(GameInput* input, 
+internal void gameUpdateAndRender(GameMemory* memory,
+                                  GameInput* input, 
                                   GameOffscreenBuffer* buffer,
                                   GameSoundOutputBuffer* soundBuffer)
 {
-    local_persist int blueOffset = 0;
-    local_persist int greenOffset = 0;
-    local_persist int toneHz = 256;
+    ASSERT(sizeof(GameState) <= memory->permanentStorageSize);
+
+    GameState* gameState = (GameState *)memory->permanentStorage;
+    if (!memory->isInitialised)
+    {
+        gameState->toneHz = 256;
+        memory->isInitialised = true;
+    }
 
     GameControllerInput* input0 = &input->controllers[0];
     if (input0->isAnalogue)
     {
         // Use analogue movement tuning
-        blueOffset += (int)(4.0f * input0->endX);
-        toneHz = 256 + (int)(128.0f * input0->endY);
+        gameState->blueOffset += (int)(4.0f * input0->endX);
+        gameState->toneHz = 256 + (int)(128.0f * input0->endY);
     }
     else
     {
@@ -85,9 +91,9 @@ internal void gameUpdateAndRender(GameInput* input,
 
     if (input0->down.endedDown)
     {
-        greenOffset += 1;
+        gameState->greenOffset += 1;
     }
 
-    gameOutputSound(soundBuffer, toneHz);
-    renderWeirdGradient(buffer, blueOffset, greenOffset);
+    gameOutputSound(soundBuffer, gameState->toneHz);
+    renderWeirdGradient(buffer, gameState->blueOffset, gameState->greenOffset);
 }

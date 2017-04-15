@@ -12,6 +12,26 @@
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
+//  HANDMADE_INTERNAL:
+//      0 - Build for public release.
+//      1 - Build for developer only.
+//
+//  HANDMADE_SLOW:
+//      0 - No slow code allowed!
+//      1 - Slow code welcome.
+//
+
+#if HANDMADE_SLOW
+#   define ASSERT(expression) if (!(expression)) { *(int *)0 = 0; }
+#else
+#   define ASSERT(...)
+#endif
+
+#define KB(x) (1024 * (u64)(x))
+#define MB(x) (1024 * KB(x))
+#define GB(x) (1024 * MB(x))
+#define TB(x) (1024 * GB(x))
+
 #define ARRAY_COUNT(array) (sizeof(array) / sizeof((array)[0]))
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -32,7 +52,7 @@ struct GameSoundOutputBuffer
 {
     int     samplesPerSecond;
     int     sampleCount;
-    s16*    samples;
+    i16*    samples;
 };
 
 struct GameButtonState
@@ -77,9 +97,33 @@ struct GameInput
     GameControllerInput     controllers[4];
 };
 
-internal void gameUpdateAndRender(GameInput* input,
+struct GameMemory
+{
+    b32     isInitialised;
+
+    u64     permanentStorageSize;
+    void*   permanentStorage;           // Required to be cleared to zero at start up.
+
+    u64     transientStorageSize;
+    void*   transientStorage;           // Required to be cleared to zero at start up.
+};
+
+
+internal void gameUpdateAndRender(GameMemory* memory,
+                                  GameInput* input,
                                   GameOffscreenBuffer* buffer, 
                                   GameSoundOutputBuffer* soundBuffer);
+
+//
+//
+//
+
+struct GameState
+{
+    int     toneHz;
+    int     greenOffset;
+    int     blueOffset;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------

@@ -49,6 +49,8 @@ solution "Handmade"
 			defines {
 				"WIN32",
                 "HANDMADE_WIN32=1",
+                "HANDMADE_SLOW=1",
+                "HANDMADE_INTERNAL=1",
 			}
 			flags { "WinMain" }
 		
