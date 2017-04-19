@@ -8,6 +8,7 @@
 // INDEX
 //
 //  COMMON      Common cross-platform declarations defined with platform-specific definitions.
+//  FILE        File input/output management
 //  GLOBALS     Global variables
 //  INPUT       Input management
 //  MAIN        Main loop
@@ -325,6 +326,110 @@ internal void win32DisplayBufferInWindow(Win32OffscreenBuffer* buffer, HDC dc, i
         &buffer->info,
         DIB_RGB_COLORS,
         SRCCOPY);
+}
+
+//----------------------------------------------------------------------------------------------------------------{FILE}
+//----------------------------------------------------------------------------------------------------------------------
+// F I L E   I / O
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
+internal DEBUG_ReadFileResult DEBUG_platformReadEntireFile(const char* fileName)
+{
+    DEBUG_ReadFileResult result = {};
+
+    HANDLE fileHandle = CreateFileA(fileName,
+                                    GENERIC_READ,       // desired access
+                                    FILE_SHARE_READ,    // share mode
+                                    0,                  // security attributes
+                                    OPEN_EXISTING,      // creation disposition
+                                    0,                  // flags & attributes
+                                    0);                 // template file
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        LARGE_INTEGER fileSize;
+        if (GetFileSizeEx(fileHandle, &fileSize))
+        {
+            ASSERT(fileSize.HighPart == 0, "Only handle files less than 4GB");
+            result.contents = VirtualAlloc(0, fileSize.LowPart, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            if (result.contents)
+            {
+                DWORD bytesRead;
+
+                if (ReadFile(fileHandle, result.contents, fileSize.LowPart, &bytesRead, 0) &&
+                    (bytesRead == fileSize.LowPart))
+                {
+                    // SUCCESS!!!
+                    result.contentsSize = fileSize.LowPart;
+                }
+                else
+                {
+                    DEBUG_platformFreeFileMemory(result.contents);
+                    result.contents = 0;
+                    result.contentsSize = 0;
+                }
+            }
+            else
+            {
+                // Out of memory!
+            }
+        }
+        else
+        {
+            // Can't get size
+        }
+
+        CloseHandle(fileHandle);
+    }
+    else
+    {
+        // Could not open file!
+    }
+
+    return result;
+}
+
+internal void DEBUG_platformFreeFileMemory(void* memory)
+{
+    if (memory)
+    {
+        VirtualFree(memory, 0, MEM_RELEASE);
+    }
+}
+
+internal b32 DEBUG_platformWriteEntireFile(const char* fileName, u32 memorySize, void* memory)
+{
+    b32 result = false;
+
+    HANDLE fileHandle = CreateFileA(fileName,
+                                    GENERIC_WRITE,      // desired access
+                                    0,                  // share mode
+                                    0,                  // security attributes
+                                    CREATE_ALWAYS,      // creation disposition
+                                    0,                  // flags & attributes
+                                    0);                 // template file
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD bytesWritten;
+
+        if (WriteFile(fileHandle, memory, memorySize, &bytesWritten, 0))
+        {
+            // SUCCESS!!!
+            result = (bytesWritten == memorySize);
+        }
+        else
+        {
+            // Failed to write
+        }
+
+        CloseHandle(fileHandle);
+    }
+    else
+    {
+        // Could not open file!
+    }
+
+    return result;
 }
 
 //----------------------------------------------------------------------------------------------------------------{MAIN}

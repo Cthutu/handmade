@@ -13,6 +13,7 @@ solution "Handmade"
 	configurations { "Debug", "Release" }
 	platforms { "Win64" }
 	location "../_build"
+    debugdir "../data"
 
 	defines {
 		"_CRT_SECURE_NO_WARNINGS"

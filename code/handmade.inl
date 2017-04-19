@@ -73,6 +73,15 @@ internal void gameUpdateAndRender(GameMemory* memory,
     GameState* gameState = (GameState *)memory->permanentStorage;
     if (!memory->isInitialised)
     {
+        const char* fileName = __FILE__;
+        
+        DEBUG_ReadFileResult file = DEBUG_platformReadEntireFile(fileName);
+        if (file.contents)
+        {
+            DEBUG_platformWriteEntireFile("test.out", file.contentsSize, file.contents);
+            DEBUG_platformFreeFileMemory(file.contents);
+        }
+
         gameState->toneHz = 256;
         memory->isInitialised = true;
     }
@@ -97,3 +106,6 @@ internal void gameUpdateAndRender(GameMemory* memory,
     gameOutputSound(soundBuffer, gameState->toneHz);
     renderWeirdGradient(buffer, gameState->blueOffset, gameState->greenOffset);
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
