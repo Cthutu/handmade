@@ -83,7 +83,7 @@ global_variable LPDIRECTSOUNDBUFFER gSoundBuffer;
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
-#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState)
+#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD /*dwUserIndex*/, XINPUT_STATE* /*pState*/)
 typedef X_INPUT_GET_STATE(XInputGetStateFunc);
 X_INPUT_GET_STATE(XInputGetStateStub)
 {
@@ -91,7 +91,7 @@ X_INPUT_GET_STATE(XInputGetStateStub)
 }
 global_variable XInputGetStateFunc* XInputGetState_ = XInputGetStateStub;
 
-#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration)
+#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD /*dwUserIndex*/, XINPUT_VIBRATION* /*pVibration*/)
 typedef X_INPUT_SET_STATE(XInputSetStateFunc);
 X_INPUT_SET_STATE(XInputSetStateStub)
 {
@@ -172,7 +172,7 @@ internal void win32InitDSound(HWND window, u32 samplesPerSec, u32 bufferSize)
                 {
                     if (SUCCEEDED(primaryBuffer->SetFormat(&waveFormat)))
                     {
-                        DSBUFFERDESC bufferDescription = {};
+                        bufferDescription = {};
                         bufferDescription.dwSize = sizeof(bufferDescription);
                         bufferDescription.dwFlags = 0;
                         bufferDescription.dwBufferBytes = bufferSize;
@@ -334,7 +334,7 @@ internal void win32DisplayBufferInWindow(Win32OffscreenBuffer* buffer, HDC dc, i
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
-internal DEBUG_ReadFileResult DEBUG_platformReadEntireFile(const char* fileName)
+DEBUG_ReadFileResult DEBUG_platformReadEntireFile(const char* fileName)
 {
     DEBUG_ReadFileResult result = {};
 
@@ -389,7 +389,7 @@ internal DEBUG_ReadFileResult DEBUG_platformReadEntireFile(const char* fileName)
     return result;
 }
 
-internal void DEBUG_platformFreeFileMemory(void* memory)
+void DEBUG_platformFreeFileMemory(void* memory)
 {
     if (memory)
     {
@@ -397,7 +397,7 @@ internal void DEBUG_platformFreeFileMemory(void* memory)
     }
 }
 
-internal b32 DEBUG_platformWriteEntireFile(const char* fileName, u32 memorySize, void* memory)
+b32 DEBUG_platformWriteEntireFile(const char* fileName, u32 memorySize, void* memory)
 {
     b32 result = false;
 
@@ -546,13 +546,13 @@ LRESULT CALLBACK win32MainWindowCallback(HWND window,
 // Main loop
 
 int CALLBACK WinMain(HINSTANCE inst, 
-                     HINSTANCE prevInst, 
-                     LPSTR cmdLine, 
-                     int cmdShow)
+                     HINSTANCE /*prevInst*/, 
+                     LPSTR /*cmdLine*/, 
+                     int /*cmdShow*/)
 {
     LARGE_INTEGER perfCounterFrequencyResult;
     QueryPerformanceFrequency(&perfCounterFrequencyResult);
-    i64 perfCounterFrequency = perfCounterFrequencyResult.QuadPart;
+    //i64 perfCounterFrequency = perfCounterFrequencyResult.QuadPart;
 
     win32LoadXInput();
  
@@ -583,10 +583,6 @@ int CALLBACK WinMain(HINSTANCE inst,
         if (window)
         {
             HDC deviceContext = GetDC(window);
-
-            // Graphics test
-            int xOffset = 0;
-            int yOffset = 0;
 
             //----------------------------------------------------------------------------------------------------------
             // Initialise sound
@@ -674,11 +670,6 @@ int CALLBACK WinMain(HINSTANCE inst,
                             // This controller is plugged in.
                             XINPUT_GAMEPAD* pad = &controllerState.Gamepad;
 
-                            bool up = (pad->wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
-                            bool down = (pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
-                            bool left = (pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
-                            bool right = (pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
-
                             f32 stickX = pad->sThumbLX / ((pad->sThumbLX < 0) ? 32768.0f : 32767.0f);
                             f32 stickY = pad->sThumbLY / ((pad->sThumbLY < 0) ? 32768.0f : 32767.0f);
 
@@ -765,11 +756,11 @@ int CALLBACK WinMain(HINSTANCE inst,
                     QueryPerformanceCounter(&endCounter);
 
                     // Display value here
-                    u64 cyclesElapsed = endCycleCount - lastCycleCount;
-                    i64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
-                    f64 msPerFrame = ((1000.0f * counterElapsed) / (f64)perfCounterFrequency);
-                    f64 fps = (f64)perfCounterFrequency / (f64)counterElapsed;
-                    f64 mcpf = (f64)cyclesElapsed / (1000.f * 1000.f);
+//                     u64 cyclesElapsed = endCycleCount - lastCycleCount;
+//                     i64 counterElapsed = endCounter.QuadPart - lastCounter.QuadPart;
+//                     f64 msPerFrame = ((1000.0f * counterElapsed) / (f64)perfCounterFrequency);
+//                     f64 fps = (f64)perfCounterFrequency / (f64)counterElapsed;
+//                     f64 mcpf = (f64)cyclesElapsed / (1000.f * 1000.f);
 
                     //                 char buffer[256];
                     //                 sprintf(buffer, "%fms/f, %ff/s, %fMc/f\n", msPerFrame, fps, mcpf);

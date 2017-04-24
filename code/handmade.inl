@@ -47,8 +47,8 @@ internal void renderWeirdGradient(GameOffscreenBuffer* buffer, int blueOffset, i
         for (int x = 0; x < buffer->width; ++x)
         {
             // Pixel in memory: 00 RR GG BB
-            u8 blue = (x + blueOffset);
-            u8 green = (y + greenOffset);
+            u8 blue = (u8)(x + blueOffset);
+            u8 green = (u8)(y + greenOffset);
 
             *pixel++ = (((u32)green << 8) | blue);
         }
