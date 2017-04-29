@@ -19,17 +19,28 @@ solution "Handmade"
 		"_CRT_SECURE_NO_WARNINGS"
 	}
 
-	configuration "Debug"
-		defines { "_DEBUG" }
-        flags "FatalWarnings"
+    warnings "extra"
+    disablewarnings {
+        "4201", -- nameless struct
+        "4100", -- unused parameter
+        "4189", -- referenced but not used
+    }
+
+    linkoptions "/opt:ref"
+    editandcontinue "off"
+
+    --filter "vs*"
+    rtti "off"
+    exceptionhandling "off"
+
+    configuration "Debug"
+        defines { "_DEBUG" }
+        flags { "FatalWarnings", "Maps" }
         symbols "on"
-        warnings "extra"
-        disablewarnings {
-            "4201",
-        }
 
     configuration "Release"
         defines { "NDEBUG" }
+        optimize "full"
 
     -- Projects
     project "handmade"
@@ -51,6 +62,7 @@ solution "Handmade"
         --  "copy \"" .. path.translate(path.join(rootdir, "Data", "*.*")) .. '" "' ..
         --      path.translate(path.join(rootdir, "_Bin", "%{cfg.platform}", "%{cfg.buildcfg}", "%{prj.name}")) .. '"'
         -- }
+
         configuration "Win*"
             defines {
                 "WIN32",
@@ -58,7 +70,11 @@ solution "Handmade"
                 "HANDMADE_SLOW=1",
                 "HANDMADE_INTERNAL=1",
             }
-            flags { "WinMain" }
-		
-		filter "action:vs*"
+            flags { 
+                "WinMain", 
+                "StaticRuntime",
+                "NoMinimalRebuild",
+                "NoIncrementalLink",
+            }
+
 
