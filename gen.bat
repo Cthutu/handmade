@@ -1,4 +1,4 @@
 @echo off
 pushd make
-premake5 vs2015
+premake5 vs2017
 popd
